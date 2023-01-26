@@ -1,4 +1,10 @@
+asgiref
 flask
-peewee
+tortoise
+tortoise-orm
+asyncpg
 python-dotenv
 psycopg2-binary
+flask_expects_json
+jsonschema
+argon2
