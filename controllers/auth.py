@@ -1,25 +1,43 @@
-import argon2
-from flask import request, Blueprint
-from flask_expects_json import expects_json
+import datetime
+import os
 
-from dbmodels import User
+import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from fastapi import APIRouter, HTTPException
 
-blueprint = Blueprint("auth", __name__)
+from models.dto.auth import AuthRegisterDto, AuthLoginDto
+from models.user import User, UserRole
+
+router = APIRouter(prefix="/auth")
+
+ph = PasswordHasher(hash_len=32)
+
+jwt_key = open(os.getenv("SERVER_SECRET_PATH"), "rb").read()
 
 
-@blueprint.route("/api/auth/register", methods=["POST"])
-@expects_json({
-    "type": "object",
-    "properties": {
-        "username": {"type": "string"},
-        "password": {"type": "string"}
-    },
-    "required": ["username", "password"]
-})
-async def register():
-    if await User.get_or_none(username=request.json["username"]):
-        return "userExists", 400
+@router.post("/register")
+async def register(data: AuthRegisterDto):
+    if await User.get_or_none(username=data.username):
+        raise HTTPException(400, "usernameAlreadyTaken")
 
-    await User.create(username=request.json["username"], password=argon2.hash_password(request.json["password"]))
+    await User.create(username=data.username, password=ph.hash(data.password), role=UserRole.USER)
 
-    return "ok"
+
+@router.post("/login")
+async def login(data: AuthLoginDto):
+    u = await User.get_or_none(username=data.username)
+    if not u:
+        raise HTTPException(400, "userNotFound")
+
+    try:
+        ph.verify(u.password, data.password)
+    except VerifyMismatchError:
+        raise HTTPException(400, "invalidPassword")
+
+    return jwt.encode({
+        "exp": datetime.datetime.now()+datetime.timedelta(days=2),
+        "userId": u.id,
+        "role": u.role
+        # role
+    }, jwt_key, algorithm="HS256")

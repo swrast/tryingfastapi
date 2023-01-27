@@ -1,10 +1,8 @@
-asgiref
-flask
-tortoise
-tortoise-orm
-asyncpg
+fastapi
+hypercorn
 python-dotenv
-psycopg2-binary
-flask_expects_json
-jsonschema
-argon2
+tortoise
+asyncpg
+pydantic
+argon2-cffi
+pyjwt

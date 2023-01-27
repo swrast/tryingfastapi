@@ -1,6 +1,9 @@
-from flask import Blueprint
+from fastapi import APIRouter
 
 import controllers.auth
+import controllers.protected
 
-blueprint = Blueprint("api", __name__)
-blueprint.register_blueprint(controllers.auth.blueprint)
+router = APIRouter(prefix="/api")
+
+router.include_router(controllers.auth.router)
+router.include_router(controllers.protected.router)
